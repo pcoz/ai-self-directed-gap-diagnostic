@@ -72,19 +72,19 @@ The gap is computable in milliseconds from just the seed examples. No training. 
 
 ## How this differs from existing approaches
 
-**Prototype Networks** (Snell et al., 2017) also take an average-then-compare approach, computing class centroids in embedding space and classifying by nearest centroid. But they require a learned embedding, trained on a large corpus of prior tasks, to produce that embedding space. The method here operates on marginals of the raw signal — no learned embedding, no prior tasks.
+- **Prototype Networks** (Snell et al., 2017) also average then compare, but require a learned embedding trained on thousands of prior tasks. This method operates on marginals of the raw signal — no learned embedding, no prior tasks.
 
-**MAML and meta-learning** (Finn et al., 2017) learn an initialisation that adapts quickly from few examples. But they require a distribution of similar tasks to meta-train on. This method requires no prior experience with related problems — it starts from the raw signal and three labels.
+- **MAML and meta-learning** (Finn et al., 2017) learn an initialisation that adapts quickly from few examples, but require a distribution of similar tasks to meta-train on. This method starts from the raw signal and three labels with no prior experience.
 
-**AutoML and neural architecture search** evaluate candidate models using validation performance. They need enough validation data to reliably distinguish candidates — typically hundreds of examples. The gap diagnostic evaluates candidates from 3 examples per class.
+- **AutoML and neural architecture search** evaluate candidates using validation performance, needing hundreds of examples to distinguish them. The gap diagnostic evaluates from 3 examples per class.
 
-**CAAFE** (Hollmann et al., 2023) uses a large language model to propose features based on dataset descriptions. It generates features from metadata, not from measured performance. It does not diagnose why a feature fails or propose revisions based on failure analysis. The gap diagnostic provides exactly that feedback signal.
+- **CAAFE** (Hollmann et al., 2023) uses an LLM to propose features from dataset descriptions, but does not diagnose why a feature fails or revise based on failure analysis. The gap diagnostic provides exactly that feedback signal.
 
-**The AI Scientist** (Sakana AI, 2024) uses an LLM to run experimental loops — proposing hypotheses, running experiments, and revising. The general framework is similar. The difference is in granularity: The AI Scientist operates at the level of "this approach didn't work, try another." The gap diagnostic provides a specific diagnosis — which classes are confused, what they share, what distinguishes them — enabling targeted rather than exploratory revision.
+- **The AI Scientist** (Sakana AI, 2024) runs LLM-directed experimental loops — a similar general framework, but operating at the level of "try something else." The gap diagnostic provides a specific diagnosis: which classes are confused, what they share, what distinguishes them — enabling targeted rather than exploratory revision.
 
-**Bayesian marginalisation** integrates out nuisance parameters before inference. The underlying principle is identical: marginalise over what you can't model, condition on what you can. The difference is that Bayesian marginalisation is typically applied to model parameters, while this method applies it to spatial and temporal dimensions of the input signal as a representation strategy.
+- **Bayesian marginalisation** applies the same underlying principle — integrate out what you can't model — but to model parameters. This method applies it to spatial and temporal dimensions of the input signal as a representation strategy.
 
-**The Dunn Index** measures cluster separation using a similar min/max formulation (minimum inter-cluster distance over maximum intra-cluster diameter). But it is used to evaluate a completed clustering after the fact. The discrimination gap is used as an iterative steering signal during representation search, paired with causal diagnosis of failure modes.
+- **The Dunn Index** measures cluster separation with a similar min/max formulation, but evaluates a completed clustering after the fact. The discrimination gap is an iterative steering signal during representation search, paired with causal diagnosis of failure modes.
 
 No single component here is new. The novelty is in their integration: a diagnostic loop where causal reasoning about failure modes — grounded in a measurable worst-case gap — drives targeted representation revision, all operating in the extreme few-shot regime.
 
