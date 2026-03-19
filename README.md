@@ -8,7 +8,7 @@ With thousands of examples, a neural network can figure this out by itself. With
 
 The method presented here lets an AI agent make that decision autonomously. It proposes ways of looking at the signal, tests each one against the few examples it has, diagnoses what's going wrong when things don't work, and revises — converging on a representation that separates the classes, even from minimal data.
 
-## The core idea
+## Identity lives along an axis
 
 Every structured signal carries information along multiple axes. A spectrogram varies across time and frequency. A micrograph varies across x and y. A diffraction pattern varies across angle and radius.
 
