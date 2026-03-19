@@ -10,128 +10,137 @@ The method presented here lets an AI agent make that decision autonomously. It p
 
 ## The core idea
 
-Every signal has structure along different axes. A spectrogram has time and frequency. A micrograph has x and y. A diffraction pattern has angle and radius. The question is: **which axis carries the identity?**
+Every structured signal carries information along multiple axes. A spectrogram varies across time and frequency. A micrograph varies across x and y. A diffraction pattern varies across angle and radius.
 
-If you're classifying bird calls, the identity is in *when* the energy appears (the temporal pattern of chirps and trills). If you're classifying crystal phases, the identity is in *where* the peaks fall (the angular distribution of diffraction). If you're classifying seismic events, it might be frequency content, or temporal shape, or both — and you don't know in advance.
+Some of these axes carry information about *what kind of thing* the signal represents. Others carry noise, or context, or irrelevant variation. The central question is: **which axis carries the identity?**
 
-The method works by trying each axis, measuring whether it helps, and reasoning about why it doesn't when it doesn't.
+For bird calls, identity lives in the temporal axis — the pattern of chirps and silences over time. For crystal phases, identity lives in the angular axis — where the diffraction peaks fall. For seismic events, it could be frequency content, temporal envelope, or both. You often don't know in advance which it is.
+
+The method works by trying each axis in turn, measuring how well it separates the known classes, and — crucially — reasoning about *why* a given axis fails when it does, so the next attempt is informed rather than random.
 
 ## Why it works
 
-There are really only two things you can do to a signal before comparing it: **sharpen** it or **smooth** it.
+Before you can compare two signals, you have to transform them into something comparable. There are fundamentally only two kinds of transformation: you can **sharpen** the signal or you can **smooth** it.
 
-Sharpening (edge detection, peak picking, thresholding) amplifies fine detail. That's useful when the fine detail IS the signal. But it also amplifies noise. And when you only have 3 examples, you can't tell the difference between amplified signal and amplified noise.
+Sharpening — edge detection, peak picking, thresholding — amplifies fine-scale structure. When that fine structure is the signal you care about, this is exactly right. But sharpening amplifies noise equally. With hundreds of examples you can average out the noise after sharpening. With three, you can't. The noise dominates, and same-class instances end up looking more different from each other in the sharpened representation than they did in the raw signal. The representation has made the problem harder.
 
-Smoothing — specifically, **marginalising** along an axis (computing the average projection) — does the opposite. It throws away fine detail and keeps the broad shape. That loses information, but the information it loses is exactly the information you can't reliably estimate from 3 examples anyway.
+Smoothing — specifically, **marginalising** along an axis by computing the average projection — does the opposite. It collapses fine-scale variation into a summary. You lose detail, but the detail you lose is precisely the detail that three examples cannot reliably characterise. What survives marginalisation is the broad structure along the chosen axis: where energy concentrates, how the signal is distributed, what the overall shape looks like. That broad structure is estimable from three examples. Fine structure is not.
 
-The statistical argument is simple: **with 3 examples, you can estimate a mean but not a variance.** Marginalisation gives you the mean structure along an axis. Sharpening gives you the fine structure, which you'd need hundreds of examples to interpret reliably. So marginalise first, compare second.
+The statistical intuition is clean: **with three examples you can estimate a mean, but not a variance.** Marginalisation gives you the mean profile along an axis. Sharpening gives you fine structure that requires variance estimates to interpret. So marginalise first, then compare.
 
-This is the same logic as why the sample mean is a better estimator than any single observation. It's Bayesian marginalisation applied spatially: integrate out the dimensions you can't afford to model, keep the dimensions that carry identity.
+This is Bayesian marginalisation applied to signal representation: integrate out the dimensions you can't afford to model, and keep the dimensions that carry identity.
 
 ## The diagnostic loop
 
-The agent doesn't just pick a representation and hope. It runs a loop:
+Choosing the right axis isn't a one-shot decision. The agent runs an iterative diagnostic loop:
 
 ```
 1. PROPOSE — pick an axis to marginalise along (e.g., "try the time axis")
 
-2. MEASURE — compute the discrimination gap:
+2. MEASURE — compute the discrimination gap on the seed examples:
    gap = min(within-class similarity) - max(between-class similarity)
-   using only the 3 seed examples per class
 
-3. DIAGNOSE — if the gap is poor:
-   - Which classes are confused?
-   - What do the confused classes share?
-   - What distinguishes them that the current representation misses?
+3. DIAGNOSE — if the gap is poor, ask:
+   - Which specific classes are being confused?
+   - What do those confused classes have in common?
+   - What distinguishes them that the current representation doesn't capture?
 
-4. REVISE — based on the diagnosis:
-   - Wrong axis → try another
-   - Right axis, wrong resolution → adjust bins
-   - Missing information → add a second axis
-   - Too much noise → increase smoothing
+4. REVISE — make a targeted change based on the diagnosis:
+   - Wrong axis → try a different one
+   - Right axis, wrong resolution → adjust the bin count
+   - Two axes each capture part of the identity → combine them
+   - Representation too noisy → increase smoothing
 
-5. RE-MEASURE — did it help?
+5. RE-MEASURE — did the revision improve the gap? If not, diagnose again.
 ```
 
-This isn't optimisation. The agent doesn't blindly maximise a score. It **understands why the score is bad** and makes a targeted fix. That's what makes it work with so little data — domain reasoning substitutes for statistical power.
+What distinguishes this from black-box optimisation is step 3. The agent doesn't just register that the score went down — it examines the confusion matrix, identifies which classes overlap, reasons about what those classes share and how they differ, and proposes a fix that addresses the specific failure. Domain reasoning substitutes for statistical power. That's how it works with three examples.
 
 ## The discrimination gap
 
-The gap is the method's compass. For any proposed representation:
+The gap is the method's compass. Given a proposed representation and a set of seed examples with known class labels:
 
-- Compare all within-class seed pairs (cosine similarity)
-- Compare all between-class seed pairs (cosine similarity)
-- **Gap** = worst within-class similarity minus best between-class similarity
+- Compute cosine similarity between every pair of same-class seeds (within-class)
+- Compute cosine similarity between every pair of different-class seeds (between-class)
+- **Gap** = the worst within-class similarity minus the best between-class similarity
 
-**Gap > 0** means every same-class pair is more similar than every cross-class pair. The representation works.
+A positive gap means the representation cleanly separates all classes — even the most similar cross-class pair is less similar than the least similar within-class pair. A negative gap means there is overlap, but the magnitude still tells you something: a gap of -0.001 is much closer to working than a gap of -0.5.
 
-**Gap < 0** means there's overlap. But even then, **less negative = better**. The gap ranks representations correctly even when none of them are perfect. And it's computable from 3 examples per class, in milliseconds, with no training.
+In practice, the gap rarely goes positive with only 3 seeds. But it consistently ranks representations correctly: the representation with the least-negative gap is the one with the highest classification accuracy. That ranking property is what makes the diagnostic loop converge.
 
-## What makes this different from existing approaches
+The gap is computable in milliseconds from just the seed examples. No training. No test set. No gradient computation.
 
-**Prototype Networks** (Snell et al., 2017) also average then compare — but they need a learned embedding trained on thousands of prior tasks. This method needs no prior tasks. It works on the raw signal.
+## How this differs from existing approaches
 
-**MAML and meta-learning** (Finn et al., 2017) learn how to learn from few examples — but they need a distribution of similar tasks to meta-train on. This method needs zero prior experience.
+**Prototype Networks** (Snell et al., 2017) also take an average-then-compare approach, computing class centroids in embedding space and classifying by nearest centroid. But they require a learned embedding, trained on a large corpus of prior tasks, to produce that embedding space. The method here operates on marginals of the raw signal — no learned embedding, no prior tasks.
 
-**AutoML and NAS** search over architectures using validation performance — but they need hundreds of examples to evaluate each candidate. The gap diagnostic needs 3.
+**MAML and meta-learning** (Finn et al., 2017) learn an initialisation that adapts quickly from few examples. But they require a distribution of similar tasks to meta-train on. This method requires no prior experience with related problems — it starts from the raw signal and three labels.
 
-**CAAFE** (Hollmann et al., 2023) uses an LLM to propose features — but it proposes based on dataset descriptions, not based on measured failure modes. It doesn't know *why* a feature failed.
+**AutoML and neural architecture search** evaluate candidate models using validation performance. They need enough validation data to reliably distinguish candidates — typically hundreds of examples. The gap diagnostic evaluates candidates from 3 examples per class.
 
-**The AI Scientist** (Sakana AI, 2024) runs LLM-directed experimental loops — a similar general framework. But it operates at the level of "try something else." The gap diagnostic tells the agent *specifically* what's wrong and what to change.
+**CAAFE** (Hollmann et al., 2023) uses a large language model to propose features based on dataset descriptions. It generates features from metadata, not from measured performance. It does not diagnose why a feature fails or propose revisions based on failure analysis. The gap diagnostic provides exactly that feedback signal.
 
-**Bayesian marginalisation** integrates out nuisance parameters before inference — the same underlying principle. But it's applied to model parameters, not to spatial dimensions of the input signal. This method applies marginalisation as a representation strategy.
+**The AI Scientist** (Sakana AI, 2024) uses an LLM to run experimental loops — proposing hypotheses, running experiments, and revising. The general framework is similar. The difference is in granularity: The AI Scientist operates at the level of "this approach didn't work, try another." The gap diagnostic provides a specific diagnosis — which classes are confused, what they share, what distinguishes them — enabling targeted rather than exploratory revision.
 
-**Dunn Index** measures cluster separation similarly (min inter / max intra). But it's used to evaluate a completed clustering, not as an iterative search signal paired with causal diagnosis.
+**Bayesian marginalisation** integrates out nuisance parameters before inference. The underlying principle is identical: marginalise over what you can't model, condition on what you can. The difference is that Bayesian marginalisation is typically applied to model parameters, while this method applies it to spatial and temporal dimensions of the input signal as a representation strategy.
 
-The novelty isn't in any single component. It's in the integration: a **diagnostic loop where causal reasoning about failure modes drives targeted representation revision**, using a worst-case gap as the compass, operating from 3 examples per class.
+**The Dunn Index** measures cluster separation using a similar min/max formulation (minimum inter-cluster distance over maximum intra-cluster diameter). But it is used to evaluate a completed clustering after the fact. The discrimination gap is used as an iterative steering signal during representation search, paired with causal diagnosis of failure modes.
 
-## When it works (and when it doesn't)
+No single component here is new. The novelty is in their integration: a diagnostic loop where causal reasoning about failure modes — grounded in a measurable worst-case gap — drives targeted representation revision, all operating in the extreme few-shot regime.
 
-The method earns its keep when:
-- **Few labeled examples** (2-10 per class) — too few for learned representations to converge
-- **High noise** — sharpening amplifies noise; marginalisation suppresses it
-- **Variable-size observations** — raw pixel comparison requires normalisation that distorts; marginals are inherently size-invariant
-- **No pretrained model** — the agent must work from the raw signal
+## When it works and when it doesn't
+
+The method is designed for a specific operating regime. It is not a general-purpose classifier.
+
+It works well when:
+- There are very few labeled examples (2-10 per class), too few for learned representations to converge
+- The observations are noisy — sharpening would amplify the noise, but marginalisation suppresses it
+- The observations vary in size or shape — raw comparison requires normalisation that introduces distortion, while marginal profiles are inherently size-invariant
+- There is no pretrained model for the domain, so the agent must work from the raw signal alone
 
 It loses its advantage when:
-- Abundant labeled data is available (100+ per class) — learned features will do better
-- Observations have fixed, uniform size — raw cosine comparison works fine
-- Noise is low and Gaussian — high-dimensional comparison implicitly averages it
+- Labeled data is abundant (100+ per class) — learned features outperform fixed projections
+- Observations are uniform in size and format — raw high-dimensional comparison already works
+- Noise is low — there is enough signal for sharpening-based features to work without amplifying noise beyond recovery
 
 ## Validation
 
-Validated on synthetic seismic event classification: 7 event types, variable duration (0.8-32s), coloured noise, 3 seeds per class. Over 3 self-directed iterations, the agent:
+The method was validated on synthetic seismic event classification: 7 event types with variable duration (0.8-32 seconds), coloured 1/f noise, and only 3 seed examples per class. The agent ran three self-directed iterations:
 
-1. Discovered that temporal profiles fail for variable-length events (diagnosis: degenerate spectrograms for short events)
-2. Discovered that scalar temporal descriptors fail with 3 seeds (diagnosis: too few dimensions, too much variance)
-3. Succeeded by combining spectral profile + waveform envelope — beating raw pixels at SNR 3 dB (66% vs 62%), while sharpening (edge detection) scored 29%
+1. **Iteration 1** tested temporal and spectral profiles on variable-length spectrograms. Temporal profiles failed catastrophically (36% accuracy) because short events produced degenerate spectrograms with as few as 2 time bins. The gap diagnostic correctly flagged this — temporal configurations had gaps of -0.92, while spectral configurations had gaps of -0.03. The diagnosis: the temporal axis has inconsistent resolution across events of different duration.
 
-The gap diagnostic correctly ranked all representation configurations. The agent found the right combination by diagnosing each failure and targeting the fix. Full experimental record in `applications/seismic-event-classification/`.
+2. **Iteration 2** attempted to fix the temporal problem by adding scalar temporal descriptors (duration, onset sharpness, decay rate). This made accuracy worse (41%), not better. The diagnosis: 7 scalar features estimated from 3 seeds have too much variance. A single outlier seed shifts the class centroid enough to misclassify the majority. The fix needed more dimensions, not fewer.
 
-## Repository Structure
+3. **Iteration 3** replaced spectogram-derived temporal features with waveform envelope profiles — energy distribution computed directly from the raw signal, which has consistent time resolution regardless of event duration. Combined with the spectral profile, this produced 66% accuracy at SNR 3 dB, beating raw pixel comparison (62%) and far exceeding sharpening-based edge detection (29%).
+
+At each iteration the gap diagnostic correctly ranked all configurations, and the confusion matrix pointed to the specific classes and failure modes that informed the next revision.
+
+Full code, data, and the agent's decision journal are in `applications/seismic-event-classification/`.
+
+## Repository structure
 
 ```
 ai-self-directed-gap-diagnostic/
-├── README.md                                  ← you are here
-├── marginalisation-before-sharpening.md       ← formal hypothesis document
+├── README.md                                  ← this document
+├── marginalisation-before-sharpening.md       ← formal hypothesis and theory
 └── applications/
-    └── seismic-event-classification/          ← first validated application
-        ├── README.md                          ← what worked, what failed, key numbers
+    └── seismic-event-classification/          ← validated application
+        ├── README.md                          ← results, what worked, what failed
         ├── investigation_log.md               ← the agent's decision journal
         ├── experiment_results.md              ← honest results with revisions
-        └── *.py                               ← all experimental code (numpy + scipy)
+        └── *.py                               ← experimental code (numpy + scipy only)
 ```
 
 ## How to apply to a new domain
 
-1. Collect 3+ labeled examples per class
-2. Identify candidate axes of the raw observation (time, frequency, space, wavelength...)
-3. Compute marginal profiles along each axis
-4. Measure the discrimination gap — pick the axis with the best gap
-5. Read the confusion matrix — which classes are still confused?
-6. Ask *why* — what do the confused classes share that the representation misses?
-7. Add that missing axis, re-measure
-8. Classify by cosine similarity to seed-set means
+1. Collect 3 or more labeled examples per class
+2. Identify the candidate axes of the raw observation — time, frequency, space, wavelength, or any other dimension along which the signal varies
+3. Compute marginal profiles along each candidate axis
+4. Measure the discrimination gap for each — pick the axis with the best (least-negative) gap
+5. Examine the confusion matrix: which classes are still being confused?
+6. Reason about *why* — what do those confused classes share that the current representation doesn't distinguish?
+7. Add a second axis that captures the missing distinction, and re-measure
+8. Once the gap stabilises, classify unlabeled observations by cosine similarity to seed-class means
 
 ## Licence
 
