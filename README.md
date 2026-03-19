@@ -28,7 +28,7 @@ Smoothing — specifically, **marginalising** along an axis by computing the ave
 
 The statistical intuition is clean: **with three examples you can estimate a mean, but not a variance.** Marginalisation gives you the mean profile along an axis. Sharpening gives you fine structure that requires variance estimates to interpret. So marginalise first, then compare.
 
-This is Bayesian marginalisation applied to signal representation: integrate out the dimensions you can't afford to model, and keep the dimensions that carry identity.
+This is Bayesian marginalisation applied to signal representation: integrate out the dimensions you can't afford to model, and keep the dimensions that carry identity. (The full theoretical argument is developed in [marginalisation-before-sharpening.md](marginalisation-before-sharpening.md).)
 
 ## The diagnostic loop
 
@@ -115,21 +115,12 @@ The method was validated on synthetic seismic event classification: 7 event type
 
 At each iteration the gap diagnostic correctly ranked all configurations, and the confusion matrix pointed to the specific classes and failure modes that informed the next revision.
 
-Full code, data, and the agent's decision journal are in `applications/seismic-event-classification/`.
+Full code, data, and the agent's [decision journal](applications/seismic-event-classification/investigation_log.md) are in [applications/seismic-event-classification/](applications/seismic-event-classification/).
 
-## Repository structure
+## Further reading
 
-```
-ai-self-directed-gap-diagnostic/
-├── README.md                                  ← this document
-├── marginalisation-before-sharpening.md       ← formal hypothesis and theory
-└── applications/
-    └── seismic-event-classification/          ← validated application
-        ├── README.md                          ← results, what worked, what failed
-        ├── investigation_log.md               ← the agent's decision journal
-        ├── experiment_results.md              ← honest results with revisions
-        └── *.py                               ← experimental code (numpy + scipy only)
-```
+- **[Formal hypothesis and theory](marginalisation-before-sharpening.md)** — the full argument for why marginalisation should precede comparison, with testable hypotheses, experimental revisions, and the operating regime analysis
+- **[Seismic event classification](applications/seismic-event-classification/)** — the first validated application, including the agent's [decision journal](applications/seismic-event-classification/investigation_log.md), [honest results](applications/seismic-event-classification/experiment_results.md), and all experimental code
 
 ## How to apply to a new domain
 
