@@ -1,6 +1,6 @@
 # Few-Shot Gap Diagnostic
 
-## What this is
+## The problem of seeing with almost no examples
 
 When someone hands you three examples of something and says "find more like these," the hard part isn't the searching — it's figuring out what "like these" means. What should you pay attention to? The shape? The timing? The frequency content? The spatial pattern?
 
