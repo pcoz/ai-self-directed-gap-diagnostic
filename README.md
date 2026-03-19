@@ -2,11 +2,11 @@
 
 ## What this is
 
-An AI agent looks at a signal — a seismogram, a spectrogram, a micrograph, any structured observation — and someone says "here are three examples of type A, and three of type B. Find me the rest."
+When someone hands you three examples of something and says "find more like these," the hard part isn't the searching — it's figuring out what "like these" means. What should you pay attention to? The shape? The timing? The frequency content? The spatial pattern?
 
-The agent doesn't know the domain. It has no pretrained model. It has 3 examples and a raw signal. It needs to figure out, on its own, how to look at the signal so that same-type things look similar and different-type things look different.
+With thousands of examples, a neural network can figure this out by itself. With three examples, it can't. Something has to decide how to look at the data before comparison becomes meaningful.
 
-This is that method: a way for an AI to **teach itself how to see**, starting from almost nothing.
+This method lets an AI agent make that decision autonomously. It proposes ways of looking at the signal, tests each one against the few examples it has, diagnoses what's going wrong when things don't work, and revises — converging on a representation that separates the classes, even from minimal data.
 
 ## The core idea
 
