@@ -1,4 +1,4 @@
-# Few-Shot Gap Diagnostic
+# Few-Shot Gap Diagnostic: Self-Directed Signal Analysis for AI Agents
 
 ## The problem of analysing with almost no examples
 
