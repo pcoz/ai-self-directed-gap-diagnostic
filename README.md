@@ -23,7 +23,7 @@ The method presented here lets an AI agent make that decision autonomously. It p
 
 > Read the method described in this repository. I have [describe your data — what the signals are, how many classes, how many labeled examples per class]. Following the diagnostic loop described in the README, propose a marginal profile representation, measure the discrimination gap on my labeled seeds, diagnose any failures using the confusion matrix, and iteratively revise until the gap is maximised. Show your reasoning at each step.
 
-That's it. The repository contains both the method and a worked example (seismic event classification) that demonstrates the full diagnostic loop across three iterations, including two failures and how they were diagnosed and fixed.
+The repository contains both the method and a worked example (seismic event classification) that demonstrates the full diagnostic loop across three iterations — including two failures and how they were diagnosed and fixed — so your AI has a concrete model to follow.
 
 ---
 
