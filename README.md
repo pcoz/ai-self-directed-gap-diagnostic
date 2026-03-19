@@ -12,6 +12,21 @@ The method presented here lets an AI agent make that decision autonomously. It p
 
 ---
 
+## Quick start
+
+**This method is for you if:** you have a small number of labeled examples of a signal (seismic events, spectrograms, micrographs, diffraction patterns, waveforms — any structured observation) and you need to classify more of the same, but you have no pretrained model and not enough data to train one.
+
+**How to use it:**
+
+1. Point your AI agent (Claude, GPT, or any LLM with code execution) at this repository
+2. Give it your data and this prompt:
+
+> Read the method described in this repository. I have [describe your data — what the signals are, how many classes, how many labeled examples per class]. Following the diagnostic loop described in the README, propose a marginal profile representation, measure the discrimination gap on my labeled seeds, diagnose any failures using the confusion matrix, and iteratively revise until the gap is maximised. Show your reasoning at each step.
+
+That's it. The repository contains both the method and a worked example (seismic event classification) that demonstrates the full diagnostic loop across three iterations, including two failures and how they were diagnosed and fixed.
+
+---
+
 ## Identity lives along an axis
 
 Every structured signal carries information along multiple axes. A spectrogram varies across time and frequency. A micrograph varies across x and y. A diffraction pattern varies across angle and radius.
