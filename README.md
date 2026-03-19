@@ -6,7 +6,7 @@ When someone hands you three examples of something and says "find more like thes
 
 With thousands of examples, a neural network can figure this out by itself. With three examples, it can't. Something has to decide how to look at the data before comparison becomes meaningful.
 
-This method lets an AI agent make that decision autonomously. It proposes ways of looking at the signal, tests each one against the few examples it has, diagnoses what's going wrong when things don't work, and revises — converging on a representation that separates the classes, even from minimal data.
+The method presented here lets an AI agent make that decision autonomously. It proposes ways of looking at the signal, tests each one against the few examples it has, diagnoses what's going wrong when things don't work, and revises — converging on a representation that separates the classes, even from minimal data.
 
 ## The core idea
 
